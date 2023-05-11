@@ -35,7 +35,7 @@ from tensorflowjs.converters import common
 from tensorflowjs.converters import keras_h5_conversion as conversion
 from tensorflowjs.converters import keras_tfjs_loader
 from tensorflowjs.converters import tf_saved_model_conversion_v2
-
+from zipfile import ZipFile
 
 def dispatch_keras_h5_to_tfjs_layers_model_conversion(
     h5_path, output_dir=None, quantization_dtype_map=None,
@@ -100,6 +100,70 @@ def dispatch_keras_h5_to_tfjs_layers_model_conversion(
 
   return model_json, groups
 
+def dispatch_keras_v3_to_tfjs_layers_model_conversion(
+    v3_path,
+    output_dir=None,
+    quantization_dtype_map=None,
+    split_weights_by_layer=False,
+    weight_shard_size_bytes=1024 * 1024 * 4,
+    metadata=None,
+):
+    if not os.path.exists(v3_path):
+        raise ValueError("Nonexistent path to .keras file: %s" % v3_path)
+    if os.path.isdir(v3_path):
+        raise ValueError(
+            "Expected path to point to an .keras file, but it points to a "
+            "directory: %s" % v3_path
+        )
+    file_path = str(v3_path)
+    if not str(file_path).endswith(".keras"):
+        raise ValueError(
+            "Invalid `filepath` argument: expected a `.keras` extension. "
+            f"Received: filepath={file_path}"
+        )
+
+    # keras_file = os.path.basename(file_path)
+    # os.makedirs(keras_file, exist_ok=True)
+    with ZipFile(file_path, "r") as zip_file:
+        zip_file.extractall()
+    dir_path = os.path.dirname(file_path)
+    meta_data_json_path = dir_path + "/metadata.json"
+    config_json_path = dir_path + "/config.json"
+    model_weights_path = dir_path + "/model.weights.h5"
+
+    with open(config_json_path, "rt") as conf:
+        try:
+            json.load(conf)
+        except (ValueError, IOError):
+            raise ValueError(
+                "The input path is expected to contain valid JSON content, "
+                "but cannot read valid JSON content from %s." % config_json_path
+            )
+
+    with open(meta_data_json_path, "rt") as meta_json:
+        try:
+            json.load(meta_json)
+        except (ValueError, IOError):
+            raise ValueError(
+                "The input path is expected to contain valid JSON content, "
+                "but cannot read valid JSON content from %s." % meta_data_json_path
+            )
+
+    h5_file = h5py.File(model_weights_path, "r")
+    if "layer_names" in h5_file.attrs:
+        model_json = None
+        # groups = conversion.h5_weights_to_tfjs_format(
+        #     h5_file, split_by_layer=split_weights_by_layer)
+        groups = conversion.h5_v3_weights_to_tfjs_format(
+            h5_file, meta_data_json_path, split_by_layer=split_weights_by_layer
+        )
+
+    else:
+        model_json, groups = conversion.h5_merged_saved_model_to_tfjs_format(
+            h5_file, split_by_layer=split_weights_by_layer
+        )
+
+    return 1
 
 def dispatch_keras_h5_to_tfjs_graph_model_conversion(
     h5_path, output_dir=None,

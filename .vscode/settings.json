@@ -142,5 +142,9 @@
     "hash_map": "cpp",
     "__refstring": "cpp"
   },
-  "editor.formatOnSave": true
+  "editor.formatOnSave": true,
+  "[python]": {
+    "editor.defaultFormatter": "ms-python.python"
+  },
+  "python.formatting.provider": "none"
 }
