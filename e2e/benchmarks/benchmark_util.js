@@ -101,8 +101,10 @@ function generateInputFromDef(inputDefs, isForGraphModel = false) {
         if (inputShape != null && inputShape[0] === -1) {
           inputShape[0] = 64;
         }
-        const min = inputDef.range[0];
-        const max = inputDef.range[1];
+        // const min = inputDef.range[0];
+        // const max = inputDef.range[1];
+        const min = 0;
+        const max = 0;
         const mean = (min + max) / 2;
         const std = (max - min) / 4;
         generatedRaw = tf.randomNormal(inputShape, mean, std, inputDef.dtype);
