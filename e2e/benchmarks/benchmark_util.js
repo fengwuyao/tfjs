@@ -99,7 +99,7 @@ function generateInputFromDef(inputDefs, isForGraphModel = false) {
         // below the mean. So 95% of the data falls in the range of
         // 4 stds.
         if (inputShape != null && inputShape[0] === -1) {
-          inputShape[0] = 64;
+          inputShape[0] = 16;
         }
         const min = inputDef.range[0];
         const max = inputDef.range[1];
@@ -113,8 +113,15 @@ function generateInputFromDef(inputDefs, isForGraphModel = false) {
         inputTensor = tf.clipByValue(generatedRaw, min, max);
         generatedRaw.dispose();
       } else if (inputDef.dtype === 'string') {
+
+        size = tf.util.sizeFromShape(inputDef.shape);
+        data = [...Array(size)].map(
+          () => Math.random().toString(36).substring(2, 7));
+
+        inputTensor = tf.tensor(data, inputShape, inputDef.dtype);
+      } else if (inputDef.dtype === 'string') {
         let str = [];
-        for (let i = 0; i < 64; i++) {
+        for (let i = 0; i < 32; i++) {
           str.push("cat")
         }
         inputTensor = tf.tensor(str);
